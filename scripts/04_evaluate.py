@@ -4,11 +4,16 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
+import sys
 
 import numpy as np
 import torch
 import yaml
 from torch_geometric.loader import DataLoader
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 from src.baselines import bag_of_node_types, graph_statistics, layer_histogram, pca_adjacency
 from src.evaluation import run_full_evaluation
