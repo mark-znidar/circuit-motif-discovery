@@ -2,7 +2,9 @@
 from __future__ import annotations
 
 import argparse
+import json
 from pathlib import Path
+import re
 import sys
 
 import torch
@@ -22,6 +24,27 @@ def parse_args():
     p.add_argument("--output_path", type=str, required=True)
     p.add_argument("--config", type=str, default="configs/default.yaml")
     return p.parse_args()
+
+
+def infer_family_from_stem(stem: str) -> str | None:
+    # Expected slug pattern: <family>_0001_<prompt_slug>
+    match = re.match(r"^(?P<family>.+)_\d{4}_", stem)
+    return match.group("family") if match else None
+
+
+def infer_family_from_metadata(path: Path) -> str | None:
+    # Graph JSON: data/graphs/json/<slug>.json
+    # Metadata:   data/graphs/metadata/<slug>.meta.json
+    slug = path.stem
+    metadata_path = path.parents[1] / "metadata" / f"{slug}.meta.json"
+    if not metadata_path.exists():
+        return None
+    try:
+        payload = json.loads(metadata_path.read_text(encoding="utf-8"))
+    except Exception:
+        return None
+    fam = payload.get("family", None)
+    return str(fam) if fam else None
 
 
 def main():
@@ -44,7 +67,13 @@ def main():
     edge_counts = []
     for i, path in enumerate(tqdm(graph_files, desc="Converting graphs", unit="graph"), start=1):
         try:
-            data = convert_graph_file_to_data(path, graph_id=path.stem, n_layers=n_layers)
+            family = infer_family_from_metadata(path) or infer_family_from_stem(path.stem) or "unknown"
+            data = convert_graph_file_to_data(
+                path,
+                family_label=family,
+                graph_id=path.stem,
+                n_layers=n_layers,
+            )
             dataset.append(data)
             node_counts.append(int(data.num_nodes))
             edge_counts.append(int(data.edge_index.shape[1]))

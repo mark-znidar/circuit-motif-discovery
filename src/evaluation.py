@@ -21,10 +21,14 @@ def knn_accuracy(embeddings, labels, k=5):
     X = np.asarray(embeddings)
     y = np.asarray(labels)
     n = len(X)
+    if n < 2:
+        return 0.0
     correct = 0
     for i in range(n):
         train_mask = np.ones(n, dtype=bool)
         train_mask[i] = False
+        if np.unique(y[train_mask]).size < 1:
+            continue
         clf = KNeighborsClassifier(n_neighbors=min(k, n - 1), metric="cosine")
         clf.fit(X[train_mask], y[train_mask])
         pred = clf.predict(X[i : i + 1])[0]
@@ -34,6 +38,10 @@ def knn_accuracy(embeddings, labels, k=5):
 
 def adjusted_rand_index(embeddings, labels, n_clusters):
     X = np.asarray(embeddings)
+    n_samples = X.shape[0]
+    if n_samples < 2:
+        return 0.0
+    n_clusters = max(1, min(int(n_clusters), n_samples))
     km = KMeans(n_clusters=n_clusters, random_state=42, n_init=10)
     pred = km.fit_predict(X)
     return adjusted_rand_score(labels, pred)
@@ -62,12 +70,18 @@ def mean_average_precision(embeddings, labels, k=10):
 def linear_probe_accuracy(embeddings, labels, cv=5):
     X = np.asarray(embeddings)
     y = np.asarray(labels)
-    splits = min(cv, np.min(np.bincount(LabelEncoder().fit_transform(y))))
+    encoded = LabelEncoder().fit_transform(y)
+    if np.unique(encoded).size < 2:
+        return 0.0
+    splits = min(cv, np.min(np.bincount(encoded)))
     splits = max(2, int(splits))
-    clf = LogisticRegression(max_iter=2000, multi_class="auto")
+    clf = LogisticRegression(max_iter=2000)
     skf = StratifiedKFold(n_splits=splits, shuffle=True, random_state=42)
-    scores = cross_val_score(clf, X, y, cv=skf, scoring="accuracy")
-    return float(np.mean(scores))
+    try:
+        scores = cross_val_score(clf, X, y, cv=skf, scoring="accuracy")
+        return float(np.mean(scores))
+    except Exception:
+        return 0.0
 
 
 def compute_metrics(embeddings, labels, n_clusters, k=5, retrieval_k=10, linear_cv=5):
@@ -91,8 +105,16 @@ def _family_palette(families: list[str], family_colors: dict[str, str] | None):
 
 
 def _plot_umap(ax, embeddings, labels, title, palette, subtitle_metric=None):
-    reducer = umap.UMAP(n_components=2, random_state=42)
-    proj = reducer.fit_transform(embeddings)
+    emb = np.asarray(embeddings)
+    if emb.shape[0] < 3:
+        proj = np.zeros((emb.shape[0], 2), dtype=float)
+        if emb.shape[1] >= 2:
+            proj[:, :2] = emb[:, :2]
+        elif emb.shape[1] == 1:
+            proj[:, 0] = emb[:, 0]
+    else:
+        reducer = umap.UMAP(n_components=2, random_state=42)
+        proj = reducer.fit_transform(embeddings)
     labels_arr = np.asarray(labels)
     for fam in sorted(set(labels)):
         m = labels_arr == fam
@@ -223,12 +245,13 @@ def create_demo3_cluster_motifs(
     kmeans_k: int = 8,
     dpi: int = 300,
 ):
-    km = KMeans(n_clusters=kmeans_k, random_state=42, n_init=10)
+    n_clusters = max(1, min(int(kmeans_k), embeddings.shape[0]))
+    km = KMeans(n_clusters=n_clusters, random_state=42, n_init=10)
     cluster_ids = km.fit_predict(embeddings)
 
     lines = ["Cluster Motif Analysis", "======================", ""]
     cluster_summary = []
-    for cid in range(kmeans_k):
+    for cid in range(n_clusters):
         idx = np.where(cluster_ids == cid)[0]
         if idx.size == 0:
             continue
