@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
 import sys
 
@@ -22,12 +23,17 @@ def parse_args():
     parser.add_argument("--families", type=str, default=None)
     parser.add_argument("--max_prompts_per_family", type=int, default=None)
     parser.add_argument("--device", type=str, default="cuda", choices=["cuda", "cpu"])
+    parser.add_argument("--hf_token", type=str, default=None, help="Optional HF token for gated models")
     parser.add_argument("--config", type=str, default="configs/default.yaml")
     return parser.parse_args()
 
 
 def main():
     args = parse_args()
+    if args.hf_token:
+        os.environ["HF_TOKEN"] = args.hf_token
+        os.environ["HUGGINGFACE_HUB_TOKEN"] = args.hf_token
+
     with open(args.config, "r", encoding="utf-8") as f:
         cfg = yaml.safe_load(f)
     gen_cfg = GenerationConfig(**cfg["generation"])
@@ -38,7 +44,13 @@ def main():
         families=families,
         max_prompts_per_family=args.max_prompts_per_family,
     )
-    summary = generate_graphs(prompts, args.output_dir, gen_cfg, device=args.device)
+    summary = generate_graphs(
+        prompts,
+        args.output_dir,
+        gen_cfg,
+        device=args.device,
+        hf_token=args.hf_token,
+    )
     print(json.dumps(summary, indent=2))
 
 

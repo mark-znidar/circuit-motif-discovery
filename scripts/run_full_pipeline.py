@@ -17,6 +17,7 @@ def parse_args():
     p.add_argument("--checkpoints_dir", type=str, default="checkpoints")
     p.add_argument("--results_dir", type=str, default="results")
     p.add_argument("--device", type=str, default="cuda", choices=["cuda", "cpu"])
+    p.add_argument("--hf_token", type=str, default=None, help="Optional HF token for gated model access")
     return p.parse_args()
 
 
@@ -57,6 +58,8 @@ def main():
     ]
     if max_prompts is not None:
         step1 += ["--max_prompts_per_family", str(max_prompts)]
+    if args.hf_token:
+        step1 += ["--hf_token", args.hf_token]
 
     step2 = [
         "python",

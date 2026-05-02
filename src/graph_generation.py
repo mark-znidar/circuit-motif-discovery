@@ -104,6 +104,29 @@ def _ensure_circuit_tracer(auto_install: bool = True) -> None:
         ) from exc
 
 
+def ensure_hf_auth(token: str | None = None) -> None:
+    """
+    Ensure Hugging Face auth is active in this runtime.
+
+    Priority:
+      1) explicit token argument
+      2) HF_TOKEN env var
+      3) HUGGINGFACE_HUB_TOKEN env var
+    """
+    token = token or os.environ.get("HF_TOKEN") or os.environ.get("HUGGINGFACE_HUB_TOKEN")
+    if not token:
+        return
+    try:
+        from huggingface_hub import login
+
+        login(token=token, add_to_git_credential=False)
+        os.environ["HF_TOKEN"] = token
+        os.environ["HUGGINGFACE_HUB_TOKEN"] = token
+        console.print("[green]Hugging Face auth configured[/green]")
+    except Exception as exc:
+        console.print(f"[yellow]HF login skipped/failed: {exc}[/yellow]")
+
+
 def _init_replacement_model(cfg: GenerationConfig, device: str = "cuda"):
     _ensure_circuit_tracer(auto_install=True)
     from circuit_tracer.replacement_model import ReplacementModel
@@ -282,7 +305,9 @@ def generate_graphs(
     output_dir: str | Path,
     cfg: GenerationConfig,
     device: str = "cuda",
+    hf_token: str | None = None,
 ) -> dict[str, Any]:
+    ensure_hf_auth(hf_token)
     _ensure_circuit_tracer(auto_install=True)
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
