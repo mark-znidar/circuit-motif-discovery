@@ -1,0 +1,69 @@
+# Circuit Motif Discovery — Default Configuration
+
+# Graph generation
+generation:
+  model: "google/gemma-2-2b"
+  transcoder_set: "gemma"  # GemmaScope PLTs
+  offload: "cpu"
+  max_feature_nodes: 7500
+  node_threshold: 0.8
+  edge_threshold: 0.98
+  dtype: "bfloat16"
+
+# Graph conversion
+conversion:
+  n_layers: 26  # Gemma-2-2B layer count
+  node_feature_dim: 8
+
+# Augmentations
+augmentations:
+  node_drop_rate: 0.1
+  edge_perturb_rate: 0.15
+  error_node_drop_rate: 0.5
+  layer_drop_count: 2
+
+# Model
+model:
+  in_dim: 8
+  hidden_dim: 128
+  out_dim: 64
+  num_layers: 3
+  edge_dim: 1
+  dropout: 0.0
+
+# Training
+training:
+  epochs: 200
+  batch_size: 32
+  lr: 0.001
+  weight_decay: 0.00001
+  temperature: 0.5
+  checkpoint_every: 50
+
+# Quick mode (for smoke tests)
+quick:
+  max_prompts_per_family: 5
+  epochs: 20
+  batch_size: 8
+
+# Evaluation
+evaluation:
+  knn_k: 5
+  kmeans_k: 8
+  retrieval_k: 10
+  umap_n_neighbors: 15
+  umap_min_dist: 0.1
+  pca_components: 50
+  linear_probe_cv: 5
+
+# Visualization
+visualization:
+  dpi: 300
+  figsize_umap: [18, 12]
+  figsize_bars: [12, 6]
+  family_colors:
+    factual_recall_capitals: "#4CAF50"
+    arithmetic: "#2196F3"
+    multilingual: "#FF9800"
+    acronyms: "#9C27B0"
+    multi_step_reasoning: "#F44336"
