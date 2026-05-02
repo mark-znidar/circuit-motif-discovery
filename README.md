@@ -7,30 +7,34 @@ This MVP extracts attribution graphs from Gemma-2-2B with `circuit-tracer`, conv
 ## Quick Start
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/circuit-motif-discovery.git
 cd circuit-motif-discovery
-bash setup_colab.sh && python scripts/run_full_pipeline.py --quick
+bash setup_colab.sh
+python scripts/run_full_pipeline.py --quick
 ```
 
 ## Running on Google Colab Pro
 
 1. Open Google Colab (`colab.research.google.com`)
 2. Set runtime: Runtime -> Change runtime type -> GPU (A100 preferred, T4 works too)
-3. Clone and setup:
+3. Put the project in Colab (either method works):
+   - **Google Drive (recommended):** upload `circuit-motif-discovery/` (or `circuit-motif-discovery.zip`) to `MyDrive`
+   - **Direct upload:** upload the folder/zip to Colab's `/content` from the Files panel
+4. Run setup from notebook Cell 1 (it auto-detects Drive vs `/content` paths), or run manually:
    ```python
-   !git clone https://github.com/YOUR_USERNAME/circuit-motif-discovery.git
-   %cd circuit-motif-discovery
+   from google.colab import drive
+   drive.mount('/content/drive')
+   %cd /content/drive/MyDrive/circuit-motif-discovery
    !bash setup_colab.sh
    ```
-4. Quick smoke test (~10 min):
+5. Quick smoke test (~10 min):
    ```python
    !python scripts/run_full_pipeline.py --quick
    ```
-5. Full run (~2-4 hours):
+6. Full run (~2-4 hours):
    ```python
    !python scripts/run_full_pipeline.py
    ```
-6. View results:
+7. View results:
    ```python
    from IPython.display import Image, display
    display(Image('results/demo1_umap.png'))
