@@ -8,10 +8,19 @@ from torch_geometric.nn import BatchNorm, GINEConv, global_add_pool
 class CircuitGINEncoder(torch.nn.Module):
     """3-layer GIN with edge features (GINEConv), sum pooling, projection head."""
 
-    def __init__(self, in_dim=8, hidden_dim=128, out_dim=64, num_layers=3, edge_dim=1):
+    def __init__(
+        self,
+        in_dim=8,
+        hidden_dim=128,
+        out_dim=64,
+        num_layers=3,
+        edge_dim=1,
+        dropout=0.0,
+    ):
         super().__init__()
         self.num_layers = num_layers
         self.edge_dim = edge_dim
+        self.dropout = float(dropout)
 
         self.input_proj = nn.Linear(in_dim, hidden_dim)
         self.convs = nn.ModuleList()
@@ -42,6 +51,8 @@ class CircuitGINEncoder(torch.nn.Module):
             h = conv(h, edge_index, edge_attr)
             h = norm(h)
             h = torch.relu(h)
+            if self.dropout > 0:
+                h = nn.functional.dropout(h, p=self.dropout, training=self.training)
 
         g = global_add_pool(h, batch)
         z = self.projection_head(g)

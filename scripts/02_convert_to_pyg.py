@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from src.graph_converter import convert_graph_file_to_data
+from src.graph_converter import convert_graph_file_to_data, is_graph_json_file
 
 
 def parse_args():
@@ -31,9 +31,13 @@ def main():
     n_layers = int(cfg["conversion"]["n_layers"])
 
     input_dir = Path(args.input_dir)
-    graph_files = sorted(input_dir.rglob("*.json"))
+    raw_json_files = sorted(input_dir.rglob("*.json"))
+    graph_files = [p for p in raw_json_files if is_graph_json_file(p)]
+    ignored_json = len(raw_json_files) - len(graph_files)
     if not graph_files:
         graph_files = sorted(input_dir.rglob("*.pt"))
+    elif ignored_json > 0:
+        print(f"Ignoring {ignored_json} non-graph JSON files (metadata/summary).")
 
     dataset = []
     node_counts = []

@@ -76,6 +76,22 @@ def _load_json_payload(path: Path) -> dict[str, Any]:
         return json.load(f)
 
 
+def is_graph_json_payload(payload: Any) -> bool:
+    if not isinstance(payload, dict):
+        return False
+    nodes = payload.get("nodes", None)
+    links = payload.get("links", None)
+    return isinstance(nodes, list) and isinstance(links, list)
+
+
+def is_graph_json_file(path: str | Path) -> bool:
+    try:
+        payload = _load_json_payload(Path(path))
+    except Exception:
+        return False
+    return is_graph_json_payload(payload)
+
+
 def _pt_to_json_payload(pt_path: Path) -> dict[str, Any]:
     # Robust fallback: convert .pt graph to JSON using circuit-tracer utility.
     from circuit_tracer.utils.create_graph_files import create_graph_files
@@ -98,6 +114,8 @@ def convert_json_payload_to_data(
     graph_id: str | None = None,
     n_layers: int = 26,
 ) -> Data:
+    if not is_graph_json_payload(payload):
+        raise ValueError("JSON payload is not a circuit graph (missing list-valued nodes/links)")
     nodes = payload.get("nodes", []) or []
     links = payload.get("links", []) or []
     metadata = payload.get("metadata", {}) or {}
