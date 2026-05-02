@@ -2,9 +2,11 @@
 from __future__ import annotations
 
 import argparse
+import json
 import subprocess
 from pathlib import Path
 
+import torch
 import yaml
 
 
@@ -18,12 +20,47 @@ def parse_args():
     p.add_argument("--results_dir", type=str, default="results")
     p.add_argument("--device", type=str, default="cuda", choices=["cuda", "cpu"])
     p.add_argument("--hf_token", type=str, default=None, help="Optional HF token for gated model access")
+    p.add_argument("--skip_brief", action="store_true", help="Skip post-run markdown brief generation")
     return p.parse_args()
 
 
 def run(cmd, cwd):
     print(f"Running: {' '.join(cmd)}")
     subprocess.run(cmd, cwd=cwd, check=True)
+
+
+def _load_json_if_exists(path: Path):
+    if not path.exists():
+        return None
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return None
+
+
+def _assert_nonempty_generation(graphs_dir: Path):
+    summary = _load_json_if_exists(graphs_dir / "summary.json")
+    if summary is None:
+        return
+    generated = int(summary.get("total_generated", 0))
+    if generated <= 0:
+        failed = int(summary.get("failed", 0))
+        raise RuntimeError(
+            "Graph generation produced zero usable graphs. "
+            f"failed={failed}. Check Hugging Face auth/token and gated model access "
+            "before continuing."
+        )
+
+
+def _assert_nonempty_dataset(dataset_path: Path):
+    if not dataset_path.exists():
+        raise RuntimeError(f"Dataset file missing: {dataset_path}")
+    data = torch.load(dataset_path, weights_only=False)
+    n = len(data) if hasattr(data, "__len__") else 0
+    if n <= 0:
+        raise RuntimeError(
+            "Converted dataset is empty. Ensure graph conversion succeeded and input graph files are valid."
+        )
 
 
 def main():
@@ -101,9 +138,23 @@ def main():
     ]
 
     run(step1, cwd=root)
+    _assert_nonempty_generation(root / graphs_dir)
     run(step2, cwd=root)
+    _assert_nonempty_dataset(root / dataset_path)
     run(step3, cwd=root)
     run(step4, cwd=root)
+    if not args.skip_brief:
+        step5 = [
+            "python",
+            "scripts/05_generate_brief.py",
+            "--results_dir",
+            args.results_dir,
+            "--graphs_dir",
+            str(graphs_dir),
+            "--output_path",
+            str(Path(args.results_dir) / "research_brief.md"),
+        ]
+        run(step5, cwd=root)
     print("Pipeline completed successfully.")
 
 

@@ -44,6 +44,8 @@ python scripts/run_full_pipeline.py --quick
    display(Image('results/demo1_umap.png'))
    display(Image('results/demo4_metrics.png'))
    ```
+8. Auto-generated research summary:
+   - `results/research_brief.md` (written automatically by `run_full_pipeline.py`)
 
 ### Colab Walkthrough Screenshots
 
@@ -62,6 +64,7 @@ python scripts/run_full_pipeline.py --quick
 - `src/baselines.py`: non-GNN representation baselines
 - `src/evaluation.py`: metrics, retrieval analysis, and static figures
 - `scripts/`: end-to-end CLI pipeline
+- `scripts/05_generate_brief.py`: generate 1-2 page markdown summary from artifacts
 - `notebooks/colab_full_pipeline.ipynb`: single Colab-run notebook
 
 ## Expected Results
@@ -73,6 +76,7 @@ After a full run, look for:
 - `results/demo3_cluster_motifs.png`: cluster-wise motif summaries
 - `results/demo4_metrics.png`: metric comparison across methods
 - `results/metrics_summary.json`: machine-readable metrics
+- `results/research_brief.md`: auto-generated concise written brief
 
 ## Citation
 
