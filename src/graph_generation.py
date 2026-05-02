@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import subprocess
+import sys
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -12,11 +13,6 @@ import torch
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TimeElapsedColumn, TimeRemainingColumn
 from tqdm.auto import tqdm
-
-from circuit_tracer.attribution.attribute import attribute
-from circuit_tracer.replacement_model import ReplacementModel
-from circuit_tracer.utils.create_graph_files import create_graph_files
-from circuit_tracer.utils.hf_utils import load_transcoder_from_hub
 
 console = Console()
 
@@ -77,7 +73,42 @@ def _dtype_from_string(dtype_str: str) -> torch.dtype:
     return getattr(torch, key)
 
 
+def _ensure_circuit_tracer(auto_install: bool = True) -> None:
+    try:
+        import circuit_tracer  # noqa: F401
+        return
+    except ModuleNotFoundError:
+        if not auto_install:
+            raise RuntimeError(
+                "Missing dependency `circuit_tracer`. Run `bash setup_colab.sh` "
+                "or install with `%pip install git+https://github.com/decoderesearch/circuit-tracer.git`."
+            )
+
+    console.print("[yellow]`circuit_tracer` not found. Attempting automatic install...[/yellow]")
+    cmd = [
+        sys.executable,
+        "-m",
+        "pip",
+        "install",
+        "-q",
+        "git+https://github.com/decoderesearch/circuit-tracer.git",
+    ]
+    subprocess.run(cmd, check=True)
+    try:
+        import circuit_tracer  # noqa: F401
+    except ModuleNotFoundError as exc:
+        raise RuntimeError(
+            "Auto-install attempted but `circuit_tracer` is still unavailable. "
+            "In Colab, run `%pip install -q git+https://github.com/decoderesearch/circuit-tracer.git` "
+            "in the same notebook kernel, then retry."
+        ) from exc
+
+
 def _init_replacement_model(cfg: GenerationConfig, device: str = "cuda"):
+    _ensure_circuit_tracer(auto_install=True)
+    from circuit_tracer.replacement_model import ReplacementModel
+    from circuit_tracer.utils.hf_utils import load_transcoder_from_hub
+
     dtype = _dtype_from_string(cfg.dtype)
     console.print(
         f"[cyan]Loading transcoders[/cyan]: set={cfg.transcoder_set}, dtype={dtype}, device={device}"
@@ -119,6 +150,9 @@ def _generate_one_python_api(
     output_dir: Path,
     cfg: GenerationConfig,
 ) -> dict[str, Any]:
+    from circuit_tracer.attribution.attribute import attribute
+    from circuit_tracer.utils.create_graph_files import create_graph_files
+
     start = time.time()
     graph = attribute(
         prompt=prompt,
@@ -249,6 +283,7 @@ def generate_graphs(
     cfg: GenerationConfig,
     device: str = "cuda",
 ) -> dict[str, Any]:
+    _ensure_circuit_tracer(auto_install=True)
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     failed_log_path = output_dir / "failed_prompts.jsonl"

@@ -9,8 +9,6 @@ from typing import Any
 import torch
 from torch_geometric.data import Data
 
-from circuit_tracer.utils.create_graph_files import create_graph_files
-
 
 NODE_TYPES = {"embedding": 0, "feature": 1, "error": 2, "logit": 3}
 
@@ -80,6 +78,8 @@ def _load_json_payload(path: Path) -> dict[str, Any]:
 
 def _pt_to_json_payload(pt_path: Path) -> dict[str, Any]:
     # Robust fallback: convert .pt graph to JSON using circuit-tracer utility.
+    from circuit_tracer.utils.create_graph_files import create_graph_files
+
     with tempfile.TemporaryDirectory() as tmpdir:
         create_graph_files(
             graph_or_path=str(pt_path),
