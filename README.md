@@ -16,10 +16,14 @@ python scripts/run_full_pipeline.py --quick
 
 1. Open Google Colab (`colab.research.google.com`)
 2. Set runtime: Runtime -> Change runtime type -> GPU (A100 preferred, T4 works too)
-3. Put the project in Colab (either method works):
-   - **Google Drive (recommended):** upload `circuit-motif-discovery/` (or `circuit-motif-discovery.zip`) to `MyDrive`
-   - **Direct upload:** upload the folder/zip to Colab's `/content` from the Files panel
-4. Run setup from notebook Cell 1 (it auto-detects Drive vs `/content` paths), or run manually:
+3. Clone and setup (default path):
+   ```python
+   %cd /content
+   !git clone https://github.com/mark-znidar/circuit-motif-discovery.git
+   %cd /content/circuit-motif-discovery
+   !bash setup_colab.sh
+   ```
+4. If clone fails (private repo/auth), use Drive fallback:
    ```python
    from google.colab import drive
    drive.mount('/content/drive')
